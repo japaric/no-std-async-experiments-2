@@ -1,0 +1,6 @@
+[package]
+authors = ["Jorge Aparicio <jorge@japaric.io>"]
+edition = "2018"
+name = "alloc-trait"
+publish = false
+version = "0.0.0-alpha.0"

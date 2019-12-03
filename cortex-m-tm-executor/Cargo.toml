@@ -1,0 +1,14 @@
+[package]
+authors = ["Jorge Aparicio <jorge@japaric.io>"]
+edition = "2018"
+name = "cortex-m-tm-executor"
+publish = false
+version = "0.0.0-alpha.0"
+
+[dependencies]
+alloc-oom = { path = "../alloc-oom" }
+alloc-trait = { path = "../alloc-trait" }
+collections = { path = "../collections", features = ["generator", "coerce"] }
+gen-async-await = { path = "../gen-async-await" }
+heapless = "0.5.1"
+pin-utils = "0.1.0-alpha.4"

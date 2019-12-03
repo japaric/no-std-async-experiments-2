@@ -1,0 +1,46 @@
+[package]
+authors = ["Jorge Aparicio <jorge@japaric.io>"]
+edition = "2018"
+name = "examples"
+publish = false
+version = "0.0.0-alpha.0"
+
+[[example]]
+name = "async-await"
+required-features = ["nightly"]
+
+[[example]]
+name = "drop"
+required-features = ["nightly"]
+
+[[example]]
+name = "shared"
+required-features = ["nightly"]
+
+[[example]]
+name = "tasks"
+required-features = ["nightly"]
+
+[dependencies]
+alloc-oom = { path = "../alloc-oom" }
+collections = { path = "../collections" }
+cortex-m = "0.6.1"
+cortex-m-tm-alloc = { path = "../cortex-m-tm-alloc" }
+cortex-m-tm-executor = { path = "../cortex-m-tm-executor", optional = true }
+cortex-m-rt = "0.6.10"
+cortex-m-semihosting = "0.3.5"
+gen-async-await = { path = "../gen-async-await" }
+heapless = "0.5.1"
+panic-semihosting = { version = "0.5.3", features = ["exit"] }
+tlsf = { path = "../tlsf" }
+
+[features]
+nightly = ["collections/rc", "cortex-m-tm-executor"]
+
+[profile.release]
+codegen-units = 1
+debug = true
+lto = true
+# opt-level = 'z'
+
+[workspace]

@@ -1,0 +1,10 @@
+[package]
+authors = ["Jorge Aparicio <jorge@japaric.io>"]
+edition = "2018"
+name = "cortex-m-tm-alloc"
+publish = false
+version = "0.0.0-alpha.0"
+
+[dependencies]
+alloc-trait = { path = "../alloc-trait" }
+cortex-m-tm-alloc-macros = { path = "macros" }

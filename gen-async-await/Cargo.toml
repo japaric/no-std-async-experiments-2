@@ -1,0 +1,9 @@
+[package]
+authors = ["Jorge Aparicio <jorge@japaric.io>"]
+edition = "2018"
+name = "gen-async-await"
+publish = false
+version = "0.0.0-alpha.0"
+
+[dependencies]
+gen-async-await-macros = { path = "macros" }

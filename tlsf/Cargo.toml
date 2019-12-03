@@ -1,0 +1,14 @@
+[package]
+authors = ["Jorge Aparicio <jorge@japaric.io>"]
+edition = "2018"
+name = "tlsf"
+version = "0.0.0-alpha.0"
+publish = false
+
+[dependencies]
+alloc-trait = { path = "../alloc-trait" }
+
+[dependencies.tlsf]
+features = ["FLI6"]
+git = "https://github.com/japaric/tlsf"
+rev = "b2d3db35df270049a378a0a395af0a2fafcefd8f"

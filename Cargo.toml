@@ -1,0 +1,13 @@
+[workspace]
+members = [
+  "alloc-oom",
+  "alloc-oom/macros",
+  "alloc-trait",
+  "collections",
+  "cortex-m-tm-alloc",
+  "cortex-m-tm-alloc/macros",
+  "cortex-m-tm-executor",
+  "gen-async-await",
+  "gen-async-await/macros",
+  "tlsf",
+]

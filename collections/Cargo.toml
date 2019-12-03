@@ -1,0 +1,15 @@
+[package]
+authors = ["Jorge Aparicio <jorge@japaric.io>"]
+edition = "2018"
+name = "collections"
+publish = false
+version = "0.0.0-alpha.0"
+
+[dependencies]
+alloc-oom = { path = "../alloc-oom" }
+alloc-trait = { path = "../alloc-trait" }
+
+[features]
+coerce = []
+generator = []
+rc = []
