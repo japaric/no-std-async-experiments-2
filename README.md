@@ -18,13 +18,13 @@ depend on them as they'll *not* be maintained.
 ## Goal
 
 The goal of this experiment was to develop a cooperative scheduler that can work
-within a [Real Time For the Masses][https://rtfm.rs] (RTFM) application without
+within a [Real Time For the Masses](https://rtfm.rs) (RTFM) application without
 reducing its suitability for building real time applications, that is the
 cooperative scheduler should not make WCET (Worst-Case Execution Time) analysis
 of the overall application harder to perform.
 
 NB: Although the goal is literally "suitable for use in RTFM"; the scheduler can
-be used outside RTFM applications, that is in pure `cortex-m-rt` applications as
+be used outside RTFM applications, e.g. pure `cortex-m-rt` applications, as
 shown in the examples contained in this document.
 
 ## Background
@@ -60,7 +60,7 @@ async fn write_file(path: &Path, contents: &[u8]) {
 Asynchronous code is meant to be executed by a (task) *executor*; no executor is
 provided in the standard library but third party crates like [`async-std`] and
 [`tokio`] provide multi-threaded executors. Asynchronous code to be executed by
-the executor is logically split into *tasks*; a task is basically is an
+the executor is logically split into *tasks*; a task is basically an
 *instance* of an `async fn` that has been scheduled to run on the executor.
 
 [`async-std`]: https://crates.io/crates/async-std
@@ -113,9 +113,10 @@ amount of context switching between tasks.
 
 In Rust, the core building block for cooperative multitasking (AKA asynchronous
 code) are generators. Syntactically, a generator looks like a closure (`|| { ..
-}` ) with suspension points (`yield`). Semantically, a generator is a state
-machine where each state consists of the execution of arbitrary code (between
-`yield` points) and transitions are controlled externally (using `resume`).
+}` ) with suspension points (`yield`) in it. Semantically, a generator is a
+state machine where each state consists of the execution of arbitrary code
+(between `yield` points) and transitions are controlled externally (using the
+`resume` method).
 
 ``` rust
 // toolchain: nightly-2019-12-02
@@ -181,13 +182,13 @@ There are few reasons for this:
   the allocator will be exclusively used in `#[idle]` we don't need any form of
   mutex to protect it -- `#[idle]` effectively owns the allocator.
 
-(There's an hypothetical third reason: hyper-tuning the allocator; this will be
-explored later on)
+(There's an hypothetical third reason: the possibility of hyper-tuning the
+allocator; this will be explored later on)
 
 (\*) Or least make dynamic allocation in tasks opt-in. We can give tasks a
 resource-locked [TLSF] allocator; this gives them the ability to `alloc` and
-`dealloc` (but not `realloc`) in bounded constant time regardless of the size of
-the allocation.
+`dealloc` (but *not* `realloc`) in bounded constant time regardless of the size
+of the allocation.
 
 [TLSF]: https://github.com/japaric/tlsf
 
@@ -210,7 +211,9 @@ mode".
 (NB: a complete version of the snippets presented here can be found in the
 `examples` directory. You can run the examples (`cargo run`) if you have QEMU
 and the `thumb7m-none-eabi` installed; you can find installation instructions in
-the [rust-embedded] book)
+[the embedded Rust book])
+
+[rust-embedded]: https://rust-embedded.github.io/book/
 
 The TM allocator is a separate allocator, independent of the global allocator
 one can be define with `#[global_allocator]`. Ideally, we would use the `Alloc`
@@ -233,7 +236,7 @@ The API devised for the TM allocator looks like this:
 ``` rust
 // toolchain: 1.39.0
 
-use cortex_m_alloc::allocator;
+use cortex_m_tm_alloc::allocator;
 use tlsf::Tlsf;
 
 #[allocator(lazy)]
@@ -314,9 +317,9 @@ if let Some(a) = A::get() {
 }
 ```
 
-As with the global allocator, a "thread-mode" allocator may run out of memory.
-In that case, the Out-Of-Memory handler defined using the `#[oom]` attribute
-will get called.
+As with the global allocator, a TM allocator may run out of memory. In that
+case, the Out-Of-Memory handler defined using the `#[oom]` attribute will get
+called.
 
 ``` rust
 #[alloc_oom::oom]
@@ -339,8 +342,8 @@ $ echo $?
 1
 ```
 
-It should be noted that "thread-mode" allocators never mask interrupts; they
-don't internally use `RefCell` either so no runtime checks or panicking branches
+It should be noted that TM allocators never mask interrupts; they don't
+internally use `RefCell` either so no runtime checks or panicking branches
 there; the fast path of their `get` constructor compiles down to 3 instructions
 (load, shift left, conditional branch); and their lazy initialization uses a
 single extra byte of static memory and doesn't require atomics.
@@ -353,8 +356,8 @@ allocator and it's declared like this:
 ``` rust
 // toolchain: nightly-2019-12-02
 
-use cortex_m_alloc::allocator;
-use cortex_m_executor::executor;
+use cortex_m_tm_alloc::allocator;
+use cortex_m_tm_executor::executor;
 
 #[allocator(lazy)]
 static mut A: Tlsf = { /* .. */ };
@@ -427,11 +430,11 @@ task and spawn another task from it. This can be seen in the example: `main`
 spawns task `A` and task `A` spawns task `C`.
 
 `block_on` does *not* guarantee that *all* previously spawned tasks will be
-driven to completion; it unless drives its argument generator to completion.
+driven to completion; it only drives its argument generator to completion.
 This can be seen in the example: task `C` is not completed by the time
 `block_on` returns.
 
-#### Deadlocks (not?)
+#### You shall (not?) deadlock
 
 `block_on` seems better than `spawn` because it doesn't box its generator and
 it's able to preserve the return value of the generator. However, nesting
@@ -467,10 +470,10 @@ send
 got Some(0)
 ```
 
-(I know, I know. "Nobody writes code like this". I agree this is unlikely if the
-program is short enough to fit in a single file but I think the chances of
-running into are non-negligible once your program spans several files, or worst
-crates)
+(I know, I know. "Nobody writes code like this". I agree this is unlikely to
+occur if the program is short enough to fit in a single file but I think the
+chances of running into are non-negligible once your program spans several
+files, or worst crates)
 
 For this reason and to simplify the implementation nesting `block_on` calls will
 panic the TM executor. (I *think* it's not possible to deadlock the executor
@@ -490,7 +493,10 @@ like this:
 ``` rust
 use core::ops::Generator;
 
-use heapless::{spsc::Consumer, ArrayLength};
+use heapless::{
+    spsc::Consumer, // consumer endpoint of a single-producer single-consumer queue
+    ArrayLength,
+};
 use gen_async_await::r#async;
 
 #[r#async]
@@ -506,7 +512,7 @@ where
     }
 }
 
-// OR you could have written; both are equivalent
+// OR you could have written this; both are equivalent
 fn dequeue2<T, N>(
     mut c: Consumer<'static, T, N>,
 ) -> impl Generator<Yield = (), Return = (T, Consumer<'static, T, N>)>
@@ -523,8 +529,8 @@ where
 ```
 
 (If you are wondering why I'm passing the `Consumer` by value rather than by
-reference: it's to work around the lack of support for self-referential borrows
-in generators; I'll get back to this later on)
+reference: it's to work around the lack of support for self-referential
+generators; I'll get back to this later on)
 
 Then in the application you would write something like this:
 
@@ -569,11 +575,14 @@ If you can upper bound the number of spawned tasks in your program it may be
 advantageous to use a fixed capacity queue. With a fixed capacity queue, the
 queue is allocated once, and could even be allocated on the stack. Plus, if you
 are using the allocator only for the task executor then the compiler can
-optimize away the `realloc` routine (and the `grow_in_place` and
-`shrink_in_place` routines called by it) as only `alloc` and `dealloc` are
+optimize away the [`realloc`] routine (and the `grow_in_place` and
+`shrink_in_place` routines called by it) as only [`alloc`] and [`dealloc`] are
 required to box generators and destroy them.
 
 [`heapless::Vec`]: https://docs.rs/heapless/0.5.1/heapless/struct.Vec.html
+[`alloc`]: https://doc.rust-lang.org/core/alloc/trait.Alloc.html#method.alloc
+[`dealloc`]: https://doc.rust-lang.org/core/alloc/trait.Alloc.html#method.dealloc
+[`realloc`]: https://doc.rust-lang.org/core/alloc/trait.Alloc.html#method.realloc
 
 The syntax to switch to the fixed capacity queue is shown below:
 
@@ -588,14 +597,15 @@ executor!(name = X, allocator = A, max_spawned_tasks = U4);
 
 With `async-std` if you want to share memory between two tasks you need to reach
 out for its `Mutex` or its `RwLock` abstraction because the `task::spawn` API
-requires that its argument generator implements the `Send` trait. This is
-required because the executor is multi-threaded so tasks can run in parallel.
+requires that its argument generator (and all its captures) implement the `Send`
+trait. This is required because the executor is multi-threaded and tasks could
+run in parallel.
 
 ``` rust
 use async_std::{sync::Mutex, task};
 
 fn main() {
-    let shared: &'static _ = Box::leak(Box::new(Mutex::new(0u128)));
+    let shared: &'static Mutex<u128> = Box::leak(Box::new(Mutex::new(0u128)));
 
     task::spawn(async move {
         let x = shared.lock().await;
@@ -609,9 +619,10 @@ fn main() {
 ```
 
 In our case, the TM executor runs everything on the same context so tasks will
-always be resumed serially (one after the one). Thus no `Send` bound is
-required on the generator passed to `spawn`; therefore instead of a `Mutex` you
-use a plain `RefCell` (or a `Cell`) to share data between tasks.
+always be resumed serially (one after the one) and without overlap. Thus no
+`Send` bound is required on the generator passed to `spawn`; therefore instead
+of a `Mutex` you use a plain `RefCell` (or a `Cell`) to share data between
+tasks.
 
 ``` rust
 use core::cell::RefCell;
@@ -762,12 +773,13 @@ fn is_unpin(_: &impl Unpin) {}
 
 We saw an example of what can't be written due to the lack self-referential
 generators in the `dequeue` function (section `#[r#async]` and `r#await!`). Here
-show it can be written using futures and `async fn` / `.await`.
+I show that the function can be written in the intended way using futures and
+`async fn` / `.await`.
 
 `#[r#async]` / `r#await!` version
 
 ``` rust
-// so, actually you can write this
+// so, actually you *can* write this
 #[r#async]
 fn dequeue<'a, T, N>(c: &'a mut Consumer<'static, T, N>) -> T
 where
@@ -781,7 +793,7 @@ where
     }
 }
 
-// but then you cannot use it
+// but then you cannot use it :-(
 #[r#async]
 fn task(mut c: Consumer<'static, i32, U4>) {
     loop {
@@ -809,7 +821,7 @@ where
         if let Some(item) = c.dequeue() {
             return Poll::Ready(item);
         }
-        // NOTE: dumb but without this, awaiting this value may hang
+        // NOTE: dumb but, without this, awaiting this future may hang the thread
         cx.waker().wake_by_ref();
         Poll::Pending
     })
@@ -939,9 +951,15 @@ allocator only needs to `alloc` and `dealloc` generators (tasks). As all these
 generators are `: Sized` we can extract their size information from the output
 of the compiler (e.g. LLVM IR or machine code). With this information, we could
 optimize the allocator for this particular payload; this could either mean using
-just a few single-linked lists of free blocks as the allocator (fastest, even
-constant time, but not memory efficient) or configuring a more general allocator
-to have size classes that closely match the expected allocation requests.
+just a few single-linked lists of free blocks as the allocator (fastest option,
+constant time even, but not memory efficient) or configuring a more general
+allocator to have size classes that closely match the expected allocation
+requests.
+
+(More information about allocator strategies and trade-offs can be found in the
+paper ["Dynamic Storage Allocation: A Survey and Critical Review"][dsa])
+
+[dsa]: https://www.cs.cmu.edu/afs/cs.cmu.edu/academic/class/15213-f98/doc/dsa.pdf
 
 ### Less dumb executor
 
@@ -1027,7 +1045,8 @@ fn c(cx: c::Context) {
 }
 ```
 
-`a` -> `b` (same priority) took 24 cycles; `b -> c` (to lower priority) took 35 cycles.
+`a` -> `b` (same priority) took 24 cycles; `b -> c` (to lower priority) took 35
+cycles.
 
 - Hardware tasks
 
