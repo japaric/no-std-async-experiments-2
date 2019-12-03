@@ -1,5 +1,7 @@
 # `no-std-async-experiments-2`
 
+*Heads up*: You are looking at a snapshot branch, not master.
+
 (For historical reasons the name says `no-std` but this is specifically about
 *embedded* `no_std` programs that target microcontrollers like ARM Cortex-M
 based ones)
