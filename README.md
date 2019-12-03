@@ -213,7 +213,7 @@ mode".
 and the `thumb7m-none-eabi` installed; you can find installation instructions in
 [the embedded Rust book])
 
-[rust-embedded]: https://rust-embedded.github.io/book/
+[the embedded Rust book]: https://rust-embedded.github.io/book/
 
 The TM allocator is a separate allocator, independent of the global allocator
 one can be define with `#[global_allocator]`. Ideally, we would use the `Alloc`
